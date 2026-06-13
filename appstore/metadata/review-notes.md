@@ -17,7 +17,8 @@ Notes for review:
 - The app is 100% offline. It does NOT use the network, has no backend, no accounts, and no in-app browser.
 - It collects NO user data and requests NO privacy permissions (no location, contacts, camera, mic, etc.).
 - No ads, no third-party SDKs, no analytics.
-- All content (Chinese characters) is sourced from standard Chinese primary-school textbooks (grades 1–3).
+- All content (Chinese characters) is sourced from standard Chinese primary-school textbooks (grades 1–5).
+- The start screen offers a difficulty picker (by grade 1–5, or all mixed) and a one-tap English/Chinese language toggle (🌐 button, top-right).
 - Background music and sound effects are synthesized locally via Web Audio; no audio files are downloaded.
 - This is a paid app (one-time purchase). There are no in-app purchases.
 

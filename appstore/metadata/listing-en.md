@@ -16,10 +16,11 @@ DuDu: Spot the Hanzi is a "spot the difference" game built for young learners of
 
 The screen fills with the same Chinese character — but one look-alike "odd one out" is hidden among them. For example, a single 目 hiding in a sea of 日, or a 清 tucked inside a wall of 请. Find it before the timer runs out! Once you tap it, choose its correct pinyin to clear the level.
 
-Every character is drawn from the standard PEP (人教版) Chinese textbooks for grades 1–3 — more than 100 real sets of visually similar and same-sound characters. Kids sharpen their eyes and learn to read at the same time. Perfect for children just starting to recognize Chinese characters.
+Every character is drawn from the standard PEP (人教版) Chinese textbooks for grades 1–5 — over a hundred real sets of visually similar and same-sound characters. You can choose difficulty by grade, progressing from simple single-component characters to complex compound ones. Kids sharpen their eyes and learn to read at the same time.
 
 ■ Simple to learn, hard to put down
 · Find the one different character among many identical ones
+· Choose difficulty by grade (1–5), or play all grades mixed
 · Beat the clock — higher levels add more characters and less time
 · Pick the right pinyin to advance and lock in the reading
 · Chain correct answers for escalating COMBO rewards

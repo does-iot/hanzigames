@@ -27,8 +27,9 @@ final class Shooter: NSObject, WKNavigationDelegate {
         web.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
     }
     func webView(_ w: WKWebView, didFinish nav: WKNavigation!) {
-        // 需要英文界面时，先切换语言再开始截图
-        let prep = uiLang == "en" ? "lang='en'; applyLang();" : "true;"
+        // 移除启动画面（截图取真正的菜单）；需要英文界面时先切换语言
+        let prep = "var sp=document.getElementById('splash'); if(sp) sp.remove(); "
+                 + (uiLang == "en" ? "lang='en'; applyLang();" : "true;")
         web.evaluateJavaScript(prep) { _, _ in
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { self.runStep() }
         }

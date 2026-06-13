@@ -247,6 +247,38 @@
     100% { opacity: 0; transform: translate(-50%,-72%) scale(1.0); }
   }
 
+  /* 启动画面 */
+  #splash {
+    position: fixed; inset: 0; z-index: 100;
+    background: linear-gradient(160deg, var(--sky1), var(--sky2));
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.6s ease;
+  }
+  #splash.hide { opacity: 0; pointer-events: none; }
+  .splash-inner { text-align: center; animation: splashPop 0.7s ease-out; }
+  .splash-emoji { font-size: clamp(56px, 12vmin, 104px); line-height: 1; }
+  .splash-title { font-size: clamp(34px, 8vmin, 64px); font-weight: 900; color: var(--candy-red); margin-top: 12px; text-shadow: 0 3px 0 #fff; }
+  .splash-sub { font-size: clamp(14px, 3vmin, 22px); font-weight: 700; color: var(--outline); margin-top: 4px; letter-spacing: 1px; }
+  .splash-dots { margin-top: 24px; display: flex; gap: 12px; justify-content: center; }
+  .splash-dots span { width: 14px; height: 14px; border-radius: 50%; background: var(--candy-orange); animation: splashDot 1s infinite ease-in-out; }
+  .splash-dots span:nth-child(2){ animation-delay: .15s; }
+  .splash-dots span:nth-child(3){ animation-delay: .3s; }
+  @keyframes splashPop { 0%{transform:scale(.6);opacity:0} 60%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+  @keyframes splashDot { 0%,100%{transform:translateY(0);opacity:.5} 50%{transform:translateY(-10px);opacity:1} }
+
+  /* 年级（难度）选择 */
+  .grade-label { font-size: clamp(13px, 2.2vmin, 16px); font-weight: 700; color: #7a5c45; margin-top: 14px; }
+  .grade-pick { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
+  .grade-btn {
+    font-family: inherit; font-size: clamp(12px, 2.1vmin, 15px); font-weight: 800;
+    padding: 7px 14px; border: 3px solid var(--outline); border-radius: 999px;
+    background: #fff; color: var(--outline); cursor: pointer;
+    box-shadow: 0 3px 0 rgba(91,70,54,0.25); transition: transform .1s, background .15s;
+  }
+  .grade-btn:hover { transform: translateY(-2px); }
+  .grade-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(91,70,54,0.25); }
+  .grade-btn.sel { background: linear-gradient(135deg, var(--candy-yellow), var(--candy-orange)); }
+
   .footer {
     position: relative; z-index: 1;
     text-align: center;
@@ -257,6 +289,16 @@
 </style>
 </head>
 <body>
+  <!-- 启动画面 -->
+  <div id="splash">
+    <div class="splash-inner">
+      <div class="splash-emoji">🐯🔍</div>
+      <div class="splash-title">嘟嘟找别字</div>
+      <div class="splash-sub">DuDu · Spot the Hanzi</div>
+      <div class="splash-dots"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
   <div class="deco c1"></div><div class="deco c2"></div>
   <div class="deco c3"></div><div class="deco c4"></div>
   <div class="combo-pop" id="comboPop"></div>
@@ -288,6 +330,8 @@
         点中它，再在<b>限时内</b>选对它的拼音，就能闯关～<br>
         连续答对还有<b>连击奖励</b>哦 🔥
       </div>
+      <div class="grade-label" id="gradeLabel">选难度（年级）：</div>
+      <div class="grade-pick" id="gradePick"></div>
       <button class="btn" id="startBtn">开始游戏</button>
     </div>
   </div>
@@ -307,56 +351,87 @@
 <script>
   // ====== 相似汉字数据：[铺底字, [可作为"找茬"目标的相似字...]] ======
   // 取自人教版一~三年级语文二会字，按视觉相似度配组
-  const PAIRS = [
-    // —— 一年级：独体/基础形近 ——
-    ['日', ['目', '白', '田', '旦']], ['目', ['日', '自', '月']],
-    ['人', ['入', '八', '大']], ['入', ['人', '八']],
-    ['大', ['太', '天', '人']], ['太', ['大', '天']], ['天', ['大', '夫', '太']],
-    ['木', ['禾', '本', '术']], ['禾', ['木', '术']], ['本', ['木', '禾']],
-    ['土', ['士', '王']], ['士', ['土']],
-    ['白', ['自', '百', '日']], ['自', ['白', '目']], ['百', ['白', '自']],
-    ['山', ['出']], ['干', ['千', '于']], ['千', ['干', '于']],
-    ['牛', ['午', '年']], ['午', ['牛', '干']],
-    ['手', ['毛']], ['毛', ['手']], ['鸟', ['乌']], ['乌', ['鸟']],
-    ['多', ['夕']], ['力', ['刀', '九']], ['刀', ['力', '刃']],
-    ['在', ['再']], ['再', ['在']], ['们', ['门']],
-    ['田', ['由', '甲', '申']], ['由', ['田', '甲', '申']],
-    ['几', ['儿', '九']], ['儿', ['几']], ['九', ['几', '力']],
-    ['王', ['玉', '主', '生']], ['玉', ['王', '主']],
-    ['月', ['用', '目']], ['用', ['月']], ['火', ['灭']], ['早', ['草', '旦']],
-    ['会', ['全', '合']], ['从', ['丛', '众']], ['工', ['土', '王']],
-    ['二', ['三', '工']], ['了', ['子']], ['子', ['了', '孑']],
-    ['小', ['少']], ['少', ['小']], ['什', ['计', '叶']], ['马', ['鸟', '乌']],
-    ['已', ['己', '巳']], ['己', ['已', '巳']], ['末', ['未']], ['未', ['末']],
-    ['免', ['兔']], ['兔', ['免']], ['买', ['卖']], ['卖', ['买']],
-    ['看', ['着']], ['鱼', ['鸟']],
-    // —— 二年级：偏旁形近 ——
-    ['请', ['清', '情', '晴', '睛']], ['清', ['请', '情', '晴', '青']],
-    ['晴', ['睛', '清', '情']], ['睛', ['晴', '请', '情']], ['青', ['清', '请']],
-    ['跑', ['抱', '泡', '炮', '饱']], ['抱', ['跑', '泡', '饱', '包']],
-    ['泡', ['抱', '跑', '炮']], ['饱', ['抱', '泡', '跑']],
-    ['园', ['圆', '团']], ['圆', ['园', '团']], ['团', ['园', '圆']],
-    ['玩', ['完', '元']], ['完', ['玩', '元']],
-    ['块', ['快', '决']], ['快', ['块', '决']],
-    ['跳', ['桃', '逃', '挑']], ['桃', ['跳', '逃', '挑']], ['挑', ['桃', '跳', '逃']],
-    ['很', ['狠', '恨']], ['狠', ['很', '恨']],
-    ['进', ['近']], ['近', ['进']], ['运', ['远']], ['远', ['运']],
-    ['哪', ['那']], ['那', ['哪']], ['找', ['我']], ['我', ['找']],
-    ['像', ['象']], ['象', ['像']], ['折', ['拆']], ['拆', ['折']],
-    ['优', ['忧']], ['历', ['厉']], ['厉', ['历']],
-    ['推', ['堆']], ['堆', ['推']], ['渴', ['喝']], ['喝', ['渴']],
-    // —— 三年级：复杂形近 ——
-    ['桥', ['轿', '骄', '娇']], ['骄', ['娇', '桥', '轿']],
-    ['棋', ['旗', '期']], ['旗', ['棋', '期']],
-    ['烧', ['浇', '绕', '晓']], ['浇', ['烧', '绕', '晓']],
-    ['拍', ['怕', '泊']], ['怕', ['拍', '泊']],
-    ['钢', ['刚', '纲']], ['刚', ['钢', '纲']],
-    ['待', ['持']], ['持', ['待']], ['钓', ['钩']], ['钩', ['钓']],
-    ['暖', ['缓']], ['缓', ['暖']], ['棵', ['颗', '课']], ['颗', ['棵', '课']],
-    ['漂', ['飘']], ['飘', ['漂']], ['拨', ['拔']], ['拔', ['拨']],
-    ['阴', ['阳']], ['蜂', ['峰', '锋']], ['峰', ['蜂', '锋']],
-    ['棉', ['绵']], ['绵', ['棉']], ['详', ['祥']], ['祥', ['详']],
-  ];
+  // 按年级分组（每组形近字对）。选"全部"时合并所有年级。
+  const GRADES = {
+    g1: { zh:'一年级', en:'Grade 1', pairs:[
+      ['日', ['目', '白', '田', '旦']], ['目', ['日', '自', '月']],
+      ['人', ['入', '八', '大']], ['入', ['人', '八']],
+      ['大', ['太', '天', '人']], ['太', ['大', '天']], ['天', ['大', '夫', '太']],
+      ['木', ['禾', '本', '术']], ['禾', ['木', '术']], ['本', ['木', '禾']],
+      ['土', ['士', '王']], ['士', ['土']],
+      ['白', ['自', '百', '日']], ['自', ['白', '目']], ['百', ['白', '自']],
+      ['山', ['出']], ['干', ['千', '于']], ['千', ['干', '于']],
+      ['牛', ['午', '年']], ['午', ['牛', '干']],
+      ['手', ['毛']], ['毛', ['手']], ['鸟', ['乌']], ['乌', ['鸟']],
+      ['多', ['夕']], ['力', ['刀', '九']], ['刀', ['力', '刃']],
+      ['在', ['再']], ['再', ['在']], ['们', ['门']],
+      ['田', ['由', '甲', '申']], ['由', ['田', '甲', '申']],
+      ['几', ['儿', '九']], ['儿', ['几']], ['九', ['几', '力']],
+      ['王', ['玉', '主', '生']], ['玉', ['王', '主']],
+      ['月', ['用', '目']], ['用', ['月']], ['火', ['灭']], ['早', ['草', '旦']],
+      ['会', ['全', '合']], ['从', ['丛', '众']], ['工', ['土', '王']],
+      ['二', ['三', '工']], ['了', ['子']], ['子', ['了', '孑']],
+      ['小', ['少']], ['少', ['小']], ['什', ['计', '叶']], ['马', ['鸟', '乌']],
+      ['已', ['己', '巳']], ['己', ['已', '巳']], ['末', ['未']], ['未', ['末']],
+      ['免', ['兔']], ['兔', ['免']], ['买', ['卖']], ['卖', ['买']],
+      ['看', ['着']], ['鱼', ['鸟']],
+    ]},
+    g2: { zh:'二年级', en:'Grade 2', pairs:[
+      ['请', ['清', '情', '晴', '睛']], ['清', ['请', '情', '晴', '青']],
+      ['晴', ['睛', '清', '情']], ['睛', ['晴', '请', '情']], ['青', ['清', '请']],
+      ['跑', ['抱', '泡', '炮', '饱']], ['抱', ['跑', '泡', '饱', '包']],
+      ['泡', ['抱', '跑', '炮']], ['饱', ['抱', '泡', '跑']],
+      ['园', ['圆', '团']], ['圆', ['园', '团']], ['团', ['园', '圆']],
+      ['玩', ['完', '元']], ['完', ['玩', '元']],
+      ['块', ['快', '决']], ['快', ['块', '决']],
+      ['跳', ['桃', '逃', '挑']], ['桃', ['跳', '逃', '挑']], ['挑', ['桃', '跳', '逃']],
+      ['很', ['狠', '恨']], ['狠', ['很', '恨']],
+      ['进', ['近']], ['近', ['进']], ['运', ['远']], ['远', ['运']],
+      ['哪', ['那']], ['那', ['哪']], ['找', ['我']], ['我', ['找']],
+      ['像', ['象']], ['象', ['像']], ['折', ['拆']], ['拆', ['折']],
+      ['优', ['忧']], ['历', ['厉']], ['厉', ['历']],
+      ['推', ['堆']], ['堆', ['推']], ['渴', ['喝']], ['喝', ['渴']],
+    ]},
+    g3: { zh:'三年级', en:'Grade 3', pairs:[
+      ['桥', ['轿', '骄', '娇']], ['骄', ['娇', '桥', '轿']],
+      ['棋', ['旗', '期']], ['旗', ['棋', '期']],
+      ['烧', ['浇', '绕', '晓']], ['浇', ['烧', '绕', '晓']],
+      ['拍', ['怕', '泊']], ['怕', ['拍', '泊']],
+      ['钢', ['刚', '纲']], ['刚', ['钢', '纲']],
+      ['待', ['持']], ['持', ['待']], ['钓', ['钩']], ['钩', ['钓']],
+      ['暖', ['缓']], ['缓', ['暖']], ['棵', ['颗', '课']], ['颗', ['棵', '课']],
+      ['漂', ['飘']], ['飘', ['漂']], ['拨', ['拔']], ['拔', ['拨']],
+      ['阴', ['阳']], ['蜂', ['峰', '锋']], ['峰', ['蜂', '锋']],
+      ['棉', ['绵']], ['绵', ['棉']], ['详', ['祥']], ['祥', ['详']],
+    ]},
+    g4: { zh:'四年级', en:'Grade 4', pairs:[
+      ['操', ['澡', '噪', '燥']], ['澡', ['操', '噪', '燥']], ['噪', ['澡', '操', '燥']],
+      ['镜', ['境']], ['境', ['镜']],
+      ['即', ['既']], ['既', ['即']],
+      ['辨', ['辩', '辫']], ['辩', ['辨', '辫']], ['辫', ['辨', '辩']],
+      ['暮', ['墓', '幕', '慕']], ['墓', ['暮', '幕', '慕']], ['幕', ['墓', '暮', '慕']],
+      ['概', ['慨', '溉']], ['慨', ['概', '溉']],
+      ['博', ['搏']], ['搏', ['博']],
+      ['努', ['怒']], ['怒', ['努']],
+      ['锐', ['悦', '阅', '说']], ['悦', ['锐', '阅', '说']], ['阅', ['悦', '锐', '说']],
+      ['茅', ['矛']], ['矛', ['茅']],
+    ]},
+    g5: { zh:'五年级', en:'Grade 5', pairs:[
+      ['偏', ['遍', '编', '骗', '篇']], ['遍', ['偏', '编', '篇']], ['编', ['偏', '遍', '骗']],
+      ['谣', ['摇', '遥']], ['摇', ['谣', '遥']], ['遥', ['谣', '摇']],
+      ['嫂', ['搜', '艘']], ['搜', ['嫂', '艘']],
+      ['蝶', ['碟', '谍']], ['碟', ['蝶', '谍']],
+      ['篷', ['蓬']], ['蓬', ['篷']],
+      ['竿', ['杆']], ['杆', ['竿']],
+      ['魁', ['魅']], ['魅', ['魁']],
+      ['损', ['陨']], ['陨', ['损']],
+    ]},
+  };
+  // 当前可出题的字对池（按所选年级）
+  function currentPairs(){
+    if (selectedGrade === 'all') return Object.values(GRADES).flatMap(g => g.pairs);
+    return GRADES[selectedGrade].pairs;
+  }
 
   // ====== 拼音表（带声调）======
   const PINYIN = {
@@ -385,7 +460,14 @@
     '钢':'gāng','刚':'gāng','纲':'gāng','待':'dài','持':'chí','钓':'diào','钩':'gōu',
     '暖':'nuǎn','缓':'huǎn','棵':'kē','颗':'kē','课':'kè','漂':'piào','飘':'piāo',
     '拨':'bō','拔':'bá','阴':'yīn','阳':'yáng','蜂':'fēng','峰':'fēng','锋':'fēng',
-    '棉':'mián','绵':'mián','详':'xiáng','祥':'xiáng'
+    '棉':'mián','绵':'mián','详':'xiáng','祥':'xiáng',
+    '操':'cāo','澡':'zǎo','噪':'zào','燥':'zào','镜':'jìng','境':'jìng','即':'jí','既':'jì',
+    '辨':'biàn','辩':'biàn','辫':'biàn','暮':'mù','墓':'mù','幕':'mù','慕':'mù',
+    '概':'gài','慨':'kǎi','溉':'gài','博':'bó','搏':'bó','努':'nǔ','怒':'nù',
+    '锐':'ruì','悦':'yuè','阅':'yuè','说':'shuō','茅':'máo','矛':'máo',
+    '偏':'piān','遍':'biàn','编':'biān','骗':'piàn','篇':'piān','谣':'yáo','摇':'yáo','遥':'yáo',
+    '嫂':'sǎo','搜':'sōu','艘':'sōu','蝶':'dié','碟':'dié','谍':'dié',
+    '篷':'péng','蓬':'péng','竿':'gān','杆':'gān','魁':'kuí','魅':'mèi','损':'sǔn','陨':'yǔn'
   };
   const ALL_PY = Array.from(new Set(Object.values(PINYIN)));
 
@@ -396,6 +478,7 @@
   let combo = 0, perfect = true;                       // 连击数 / 本关是否全对
   let pyTimer = null, pyTimeLeft = 0, pyTimeTotal = 0; // 拼音环节计时
   let lang = 'zh', overlayMode = 'intro', gameActive = false, curBase = ''; // 语言/界面状态
+  let selectedGrade = 'all';                            // 所选年级：all/g1/g2/g3/g4/g5
 
   // ====== 中英文案 ======
   const I18N = {
@@ -403,6 +486,7 @@
       title:'嘟嘟找别字',
       intro:'屏幕上铺满了同一个汉字，<br>其中藏着一个<b>长得很像的"别字"</b>！<br>点中它，再在<b>限时内</b>选对它的拼音，就能闯关～<br>连续答对还有<b>连击奖励</b>哦 🔥',
       start:'开始游戏', again:'再玩一次',
+      chooseGrade:'选难度（年级）：', gradeAll:'全部',
       level:n=>`第 <b id="level">${n}</b> 关`,
       hintFind:b=>`这些都是「<b>${b}</b>」，快找出不一样的那个！`,
       hintFound:o=>`找到啦！这个是「<b>${o}</b>」 🎉`,
@@ -414,13 +498,14 @@
       comboPop:(n,b)=>`🔥 连击 ×${n}！ +${b}⭐`,
       overTitle:'时间到啦！',
       overSub:(l,s)=>`你闯到了第 <b>${l}</b> 关，得了 <b>${s}</b> 颗星 ⭐<br>正确答案已经用绿色标出，再来一次吧！`,
-      footer:'嘟嘟找别字 🐯 汉字取自人教版一~三年级二会字 · 找别字 → 选拼音 → 连击闯关',
+      footer:'嘟嘟找别字 🐯 汉字取自人教版一~五年级 · 找别字 → 选拼音 → 连击闯关',
       other:'EN'
     },
     en: {
       title:'DuDu: Spot the Hanzi',
       intro:'The screen fills with one repeated Chinese character.<br>One <b>look-alike "odd one"</b> is hidden inside!<br>Tap it, then pick its <b>pinyin in time</b> to clear the level.<br>Chain correct answers for <b>combo rewards</b> 🔥',
       start:'Start Game', again:'Play Again',
+      chooseGrade:'Difficulty (grade):', gradeAll:'All',
       level:n=>`Level <b id="level">${n}</b>`,
       hintFind:b=>`These are all 「<b>${b}</b>」 — find the different one!`,
       hintFound:o=>`Found it! This one is 「<b>${o}</b>」 🎉`,
@@ -432,7 +517,7 @@
       comboPop:(n,b)=>`🔥 Combo ×${n}! +${b}⭐`,
       overTitle:"Time's up!",
       overSub:(l,s)=>`You reached Level <b>${l}</b> with <b>${s}</b> stars ⭐<br>The answer is marked in green. Try again!`,
-      footer:'DuDu: Spot the Hanzi 🐯 Characters from PEP grades 1–3 · Spot it → Pick pinyin → Combo!',
+      footer:'DuDu: Spot the Hanzi 🐯 Characters from PEP grades 1–5 · Spot it → Pick pinyin → Combo!',
       other:'中'
     }
   };
@@ -517,7 +602,8 @@
     locked=false; perfect=true;                        // 新关卡默认"全对"
     const {count,time}=levelConfig(level);
     $('level').textContent=level; $('score').textContent=score;
-    const pair=PAIRS[Math.floor(Math.random()*PAIRS.length)];
+    const pool=currentPairs();
+    const pair=pool[Math.floor(Math.random()*pool.length)];
     const base=pair[0];
     oddChar=pair[1][Math.floor(Math.random()*pair[1].length)];
     const cols=Math.ceil(Math.sqrt(count)), rows=Math.ceil(count/cols), actual=cols*rows;
@@ -628,6 +714,20 @@
   }
   function startGame(){ ensureAudio(); startMusic(); level=1; score=0; combo=0; if(pyTimer)clearInterval(pyTimer); startOverlay.classList.add('hidden'); pinyinOverlay.classList.add('hidden'); startLevel(); }
 
+  // ====== 年级（难度）选择 ======
+  function renderGradePick(){
+    const s=I18N[lang];
+    const box=$('gradePick'); box.innerHTML='';
+    const opts=[['all', s.gradeAll], ...Object.keys(GRADES).map(k=>[k, GRADES[k][lang]])];
+    opts.forEach(([key,label])=>{
+      const b=document.createElement('button');
+      b.className='grade-btn'+(key===selectedGrade?' sel':'');
+      b.textContent=label;
+      b.addEventListener('click',()=>{ selectedGrade=key; renderGradePick(); });
+      box.appendChild(b);
+    });
+  }
+
   // ====== 语言切换 ======
   function applyLang(){
     const s=I18N[lang];
@@ -635,6 +735,8 @@
     $('footer').innerHTML=s.footer;
     $('pyTitleEl').innerHTML=s.pyTitle;
     $('pyQEl').innerHTML=s.pyQ;
+    $('gradeLabel').textContent=s.chooseGrade;
+    renderGradePick();
     $('levelPill').innerHTML=s.level(level);
     if(overlayMode==='intro'){
       $('ovTitle').textContent=s.title; $('ovSub').innerHTML=s.intro; $('startBtn').textContent=s.start;
@@ -646,6 +748,7 @@
   $('startBtn').addEventListener('click',startGame);
   $('langBtn').addEventListener('click',()=>{ lang=(lang==='zh'?'en':'zh'); document.documentElement.lang=(lang==='zh'?'zh-CN':'en'); applyLang(); });
   applyLang();   // 初始化界面语言
+  setTimeout(()=>{ const sp=$('splash'); if(sp) sp.classList.add('hide'); }, 1900);  // 启动画面淡出
 </script>
 </body>
 </html>
