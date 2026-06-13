@@ -149,6 +149,8 @@
   }
   .cell:hover { transform: translateY(-3px) scale(1.05); background: #fff; border-color: var(--candy-orange); }
   .cell.correct { background: var(--candy-green); color: #fff; border-color: #2f9e44; transform: scale(1.1); }
+  .cell.answer { background: var(--candy-green); color: #fff; border-color: #2f9e44; position: relative; z-index: 2; animation: ansPulse 0.9s infinite; }
+  @keyframes ansPulse { 0%,100%{ transform:scale(1.0); box-shadow:0 0 0 0 rgba(81,207,102,.6) } 50%{ transform:scale(1.14); box-shadow:0 0 0 14px rgba(81,207,102,0) } }
   .cell.wrong { animation: shake 0.3s; background: #ffe3e3; border-color: var(--candy-red); }
   @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 50%{transform:translateX(5px)} 75%{transform:translateX(-4px)} }
 
@@ -308,6 +310,7 @@
       <div class="pill" id="levelPill">第 <b id="level">1</b> 关</div>
       <div class="timer-wrap"><div class="timer-bar" id="timerBar"></div></div>
       <div class="pill">⭐ <b id="score">0</b></div>
+      <button class="mute-btn" id="pauseBtn" title="保存并回到菜单 / Save &amp; menu">⏸</button>
       <button class="mute-btn" id="langBtn" title="Language / 语言">EN</button>
       <button class="mute-btn" id="muteBtn" title="背景音乐开关">🔊</button>
     </div>
@@ -332,6 +335,7 @@
       </div>
       <div class="grade-label" id="gradeLabel">选难度（年级）：</div>
       <div class="grade-pick" id="gradePick"></div>
+      <button class="btn" id="continueBtn" style="display:none; background:linear-gradient(135deg,var(--candy-green),#2f9e44); color:#fff;">继续游戏</button>
       <button class="btn" id="startBtn">开始游戏</button>
     </div>
   </div>
@@ -489,13 +493,17 @@
   let pyTimer = null, pyTimeLeft = 0, pyTimeTotal = 0; // 拼音环节计时
   let lang = 'zh', overlayMode = 'intro', gameActive = false, curBase = ''; // 语言/界面状态
   let selectedGrade = 'all';                            // 所选年级：all/g1/g2/g3/g4/g5
+  let lastAnswerChar = '';                              // 上一局正确答案（超时提示用）
+  const SAVE_KEY = 'dudu_save_v1';                      // 进度存档键
 
   // ====== 中英文案 ======
   const I18N = {
     zh: {
       title:'嘟嘟找别字',
       intro:'屏幕上铺满了同一个汉字，<br>其中藏着一个<b>长得很像的"别字"</b>！<br>点中它，再在<b>限时内</b>选对它的拼音，就能闯关～<br>连续答对还有<b>连击奖励</b>哦 🔥',
-      start:'开始游戏', again:'再玩一次',
+      start:'开始游戏', again:'再玩一次', restart:'重新开始',
+      cont:n=>`继续游戏（第 ${n} 关）`,
+      answerLine:(c,p)=>`正确答案是「<b>${c}</b>」，读音 <b>${p}</b> 🔎`,
       chooseGrade:'选难度（年级）：', gradeAll:'全部',
       level:n=>`第 <b id="level">${n}</b> 关`,
       hintFind:b=>`这些都是「<b>${b}</b>」，快找出不一样的那个！`,
@@ -514,7 +522,9 @@
     en: {
       title:'DuDu: Spot the Hanzi',
       intro:'The screen fills with one repeated Chinese character.<br>One <b>look-alike "odd one"</b> is hidden inside!<br>Tap it, then pick its <b>pinyin in time</b> to clear the level.<br>Chain correct answers for <b>combo rewards</b> 🔥',
-      start:'Start Game', again:'Play Again',
+      start:'Start Game', again:'Play Again', restart:'Restart',
+      cont:n=>`Continue (Level ${n})`,
+      answerLine:(c,p)=>`The answer was 「<b>${c}</b>」 — pinyin <b>${p}</b> 🔎`,
       chooseGrade:'Difficulty (grade):', gradeAll:'All',
       level:n=>`Level <b id="level">${n}</b>`,
       hintFind:b=>`These are all 「<b>${b}</b>」 — find the different one!`,
@@ -568,25 +578,40 @@
               "D5","G5","E5","C5",0,0,0,0],
       bass:["C3","G3","C3","G3","C3","G3","G3","C3"] },
   ];
+  // 中国风五声音阶旋律（宫商角徵羽 = C D E G A），英文版背景音乐，舒缓优美
+  const TUNES_CN = [
+    { name:'古韵·流水',
+      melody:["E5","G5","A5","G5","E5","D5","C5",0, "D5","E5","G5","A5","G5","E5","D5",0],
+      bass:["C3","A3","G3","C3"] },
+    { name:'古韵·清风',
+      melody:["G5","A5","C6","A5","G5","E5","G5",0, "E5","D5","C5","D5","E5","G5","A5",0],
+      bass:["C3","G3","A3","G3"] },
+    { name:'古韵·明月',
+      melody:["A5","G5","E5","D5","C5","D5","E5",0, "G5","E5","D5","C5","A4","C5","D5",0],
+      bass:["A3","G3","C3","C3"] },
+  ];
 
   function ensureAudio(){ if(!audioCtx){const AC=window.AudioContext||window.webkitAudioContext; audioCtx=new AC();} if(audioCtx.state==='suspended') audioCtx.resume(); }
   function playTone(f,dur,type='sine',vol=0.06){ if(!audioCtx||!f||f<=0)return; const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=type; o.frequency.value=f; const t=audioCtx.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.03); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+dur+0.05); }
   function startMusic(){
     if(musicTimer)clearInterval(musicTimer);
     musicStep=0; tuneIndex=0;
+    const cn = (lang==='en');                 // 英文版 → 中国风五声音乐；中文版 → 儿歌
+    const tunes = cn ? TUNES_CN : TUNES;
+    const stepMs = cn ? 360 : 300;            // 传统乐稍舒缓
     musicTimer=setInterval(()=>{
       if(!musicOn||!audioCtx)return;
-      const tune=TUNES[tuneIndex];
+      const tune=tunes[tuneIndex];
       const m=tune.melody[musicStep];
-      if(m) playTone(noteFreq(m),0.26,'triangle',0.05);          // 主旋律
-      if(musicStep%4===0){                                        // 低音：根音 + 柔和五度
+      if(m) playTone(noteFreq(m), cn?0.34:0.26, 'triangle', 0.05);    // 主旋律
+      if(musicStep%4===0){                                            // 低音：根音 + 柔和五度
         const b=tune.bass[(musicStep/4)%tune.bass.length];
-        if(b){ playTone(noteFreq(b),0.5,'sine',0.06); playTone(noteFreq(b)*1.5,0.45,'sine',0.022); }
+        if(b){ playTone(noteFreq(b), cn?0.6:0.5,'sine',0.06); playTone(noteFreq(b)*1.5, cn?0.5:0.45,'sine',0.022); }
       }
-      if(musicStep%2===0) playTone(2400,0.025,'square',0.01);     // 轻节奏点缀
+      if(!cn && musicStep%2===0) playTone(2400,0.025,'square',0.01);  // 儿歌的轻节奏点缀（传统乐不用）
       musicStep++;
-      if(musicStep>=tune.melody.length){ musicStep=0; tuneIndex=(tuneIndex+1)%TUNES.length; } // 换下一首
-    }, 300);
+      if(musicStep>=tune.melody.length){ musicStep=0; tuneIndex=(tuneIndex+1)%tunes.length; }
+    }, stepMs);
   }
   function sfxRight(){ playTone(noteFreq("G5"),0.12,'square',0.08); setTimeout(()=>playTone(noteFreq("C6"),0.18,'square',0.08),120); }
   function sfxWrong(){ playTone(160,0.18,'sawtooth',0.07); }
@@ -717,13 +742,36 @@
   function gameOver(){
     locked=true; gameActive=false; overlayMode='over';
     if(timerId)clearInterval(timerId); if(pyTimer)clearInterval(pyTimer);
+    clearSave();                          // 本局结束，存档失效
+    lastAnswerChar=oddChar;               // 记录答案用于提示
     const cells=gridEl.children;
-    if(cells[answerIndex])cells[answerIndex].classList.add('correct');
+    if(cells[answerIndex])cells[answerIndex].classList.add('answer');  // 脉冲高亮正确答案
     $('ovEmoji').textContent='⏰💦';
-    applyLang();                          // 按当前语言渲染结算文案
+    applyLang();                          // 按当前语言渲染结算文案（含答案提示）
     startOverlay.classList.remove('hidden');
   }
-  function startGame(){ ensureAudio(); startMusic(); level=1; score=0; combo=0; if(pyTimer)clearInterval(pyTimer); startOverlay.classList.add('hidden'); pinyinOverlay.classList.add('hidden'); startLevel(); }
+  function startGame(){ ensureAudio(); startMusic(); clearSave(); level=1; score=0; combo=0; if(pyTimer)clearInterval(pyTimer); startOverlay.classList.add('hidden'); pinyinOverlay.classList.add('hidden'); startLevel(); }
+
+  // ====== 进度存档 / 继续 ======
+  function saveProgress(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify({level,score,grade:selectedGrade})); }catch(e){} }
+  function loadSave(){ try{ return JSON.parse(localStorage.getItem(SAVE_KEY)); }catch(e){ return null; } }
+  function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+  function pauseToMenu(){
+    if(!gameActive) return;
+    if(timerId)clearInterval(timerId); if(pyTimer)clearInterval(pyTimer);
+    saveProgress();
+    gameActive=false; overlayMode='intro';
+    pinyinOverlay.classList.add('hidden');
+    applyLang();
+    startOverlay.classList.remove('hidden');
+  }
+  function continueGame(){
+    const sv=loadSave(); if(!sv) return;
+    ensureAudio(); startMusic();
+    selectedGrade=sv.grade||'all'; level=sv.level||1; score=sv.score||0; combo=0;
+    startOverlay.classList.add('hidden'); pinyinOverlay.classList.add('hidden');
+    startLevel();
+  }
 
   // ====== 年级（难度）选择 ======
   function renderGradePick(){
@@ -749,15 +797,28 @@
     $('gradeLabel').textContent=s.chooseGrade;
     renderGradePick();
     $('levelPill').innerHTML=s.level(level);
+    const sv=loadSave();
     if(overlayMode==='intro'){
-      $('ovTitle').textContent=s.title; $('ovSub').innerHTML=s.intro; $('startBtn').textContent=s.start;
+      $('ovTitle').textContent=s.title; $('ovSub').innerHTML=s.intro;
+      if(sv){ $('continueBtn').style.display=''; $('continueBtn').textContent=s.cont(sv.level||1); $('startBtn').textContent=s.restart; }
+      else  { $('continueBtn').style.display='none'; $('startBtn').textContent=s.start; }
     } else {
-      $('ovTitle').textContent=s.overTitle; $('ovSub').innerHTML=s.overSub(level,score); $('startBtn').textContent=s.again;
+      $('ovTitle').textContent=s.overTitle;
+      $('ovSub').innerHTML=s.overSub(level,score) + (lastAnswerChar ? '<br>'+s.answerLine(lastAnswerChar, PINYIN[lastAnswerChar]||'') : '');
+      $('continueBtn').style.display='none';
+      $('startBtn').textContent=s.again;
     }
     if(gameActive&&curBase) $('hint').innerHTML=s.hintFind(curBase);
   }
   $('startBtn').addEventListener('click',startGame);
-  $('langBtn').addEventListener('click',()=>{ lang=(lang==='zh'?'en':'zh'); document.documentElement.lang=(lang==='zh'?'zh-CN':'en'); applyLang(); });
+  $('continueBtn').addEventListener('click',continueGame);
+  $('pauseBtn').addEventListener('click',pauseToMenu);
+  $('langBtn').addEventListener('click',()=>{
+    lang=(lang==='zh'?'en':'zh');
+    document.documentElement.lang=(lang==='zh'?'zh-CN':'en');
+    applyLang();
+    if(audioCtx) startMusic();             // 切换语言 → 切换中英背景音乐
+  });
   applyLang();   // 初始化界面语言
   setTimeout(()=>{ const sp=$('splash'); if(sp) sp.classList.add('hide'); }, 1900);  // 启动画面淡出
 </script>

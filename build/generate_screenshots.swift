@@ -74,6 +74,7 @@ s.steps = [
     ("02-find.png", "startGame();"),
     ("03-pinyin.png", "showPinyinQuiz();"),
     ("04-combo.png", "pinyinOverlay.classList.add('hidden'); showCombo(5,25);"),
+    ("05-timesup.png", "document.getElementById('comboPop').classList.remove('show'); gameOver();"),
 ]
 s.load(gamePath)
 app.run()
