@@ -23,7 +23,7 @@
 
 **关键信息**
 - App 名称：嘟嘟找别字 / DuDu: Spot the Hanzi
-- Bundle ID（占位，可改）：`com.dangdang.duduhanzi`
+- Bundle ID（已设定）：`com.doesiot.duduhanzi`
 - 版本：1.0（build 1）
 - 价格：付费下载（具体价格你在 App Store Connect 选档位）
 - 版权 / 联系：© 2026 嘟嘟的哥哥叫铛铛 · xadoo@gmail.com
