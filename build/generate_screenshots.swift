@@ -4,6 +4,7 @@ import WebKit
 // 用 WKWebView 渲染游戏并截取 App Store 规格截图（1440x900 逻辑，输出 2x = 2880x1800）
 let outDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "."
 let gamePath = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "game.html"
+let uiLang = CommandLine.arguments.count > 3 ? CommandLine.arguments[3] : "zh"   // zh | en
 let WIDTH: CGFloat = 1440, HEIGHT: CGFloat = 900
 
 final class Shooter: NSObject, WKNavigationDelegate {
@@ -26,7 +27,11 @@ final class Shooter: NSObject, WKNavigationDelegate {
         web.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
     }
     func webView(_ w: WKWebView, didFinish nav: WKNavigation!) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { self.runStep() }
+        // 需要英文界面时，先切换语言再开始截图
+        let prep = uiLang == "en" ? "lang='en'; applyLang();" : "true;"
+        web.evaluateJavaScript(prep) { _, _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { self.runStep() }
+        }
     }
     func runStep() {
         if idx >= steps.count { NSApp.terminate(nil); return }

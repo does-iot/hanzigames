@@ -263,9 +263,10 @@
 
   <div class="stage">
     <div class="hud">
-      <div class="pill">第 <b id="level">1</b> 关</div>
+      <div class="pill" id="levelPill">第 <b id="level">1</b> 关</div>
       <div class="timer-wrap"><div class="timer-bar" id="timerBar"></div></div>
       <div class="pill">⭐ <b id="score">0</b></div>
+      <button class="mute-btn" id="langBtn" title="Language / 语言">EN</button>
       <button class="mute-btn" id="muteBtn" title="背景音乐开关">🔊</button>
     </div>
 
@@ -273,7 +274,7 @@
 
     <div class="grid-wrap"><div class="grid" id="grid"></div></div>
 
-    <div class="footer">嘟嘟找别字 🐯 汉字取自人教版一~三年级二会字 · 找别字 → 选拼音 → 连击闯关</div>
+    <div class="footer" id="footer">嘟嘟找别字 🐯 汉字取自人教版一~三年级二会字 · 找别字 → 选拼音 → 连击闯关</div>
   </div>
 
   <!-- 开始 / 结束 弹窗 -->
@@ -294,9 +295,9 @@
   <!-- 拼音选择 弹窗 -->
   <div class="overlay hidden" id="pinyinOverlay">
     <div class="modal">
-      <div class="sub">你找到的不同字是 👇</div>
+      <div class="sub" id="pyTitleEl">你找到的不同字是 👇</div>
       <div class="found-char" id="foundChar">目</div>
-      <div class="sub" style="margin-top:10px">它的拼音是哪个呢？<b>快选！</b></div>
+      <div class="sub" id="pyQEl" style="margin-top:10px">它的拼音是哪个呢？<b>快选！</b></div>
       <div class="timer-wrap" style="margin:10px 0 2px;"><div class="timer-bar" id="pyTimerBar"></div></div>
       <div class="pinyin-options" id="pinyinOptions"></div>
       <div class="modal-feedback" id="pyFeedback"></div>
@@ -394,6 +395,47 @@
   let answerIndex = -1, oddChar = '', locked = false, currentCols = 4;
   let combo = 0, perfect = true;                       // 连击数 / 本关是否全对
   let pyTimer = null, pyTimeLeft = 0, pyTimeTotal = 0; // 拼音环节计时
+  let lang = 'zh', overlayMode = 'intro', gameActive = false, curBase = ''; // 语言/界面状态
+
+  // ====== 中英文案 ======
+  const I18N = {
+    zh: {
+      title:'嘟嘟找别字',
+      intro:'屏幕上铺满了同一个汉字，<br>其中藏着一个<b>长得很像的"别字"</b>！<br>点中它，再在<b>限时内</b>选对它的拼音，就能闯关～<br>连续答对还有<b>连击奖励</b>哦 🔥',
+      start:'开始游戏', again:'再玩一次',
+      level:n=>`第 <b id="level">${n}</b> 关`,
+      hintFind:b=>`这些都是「<b>${b}</b>」，快找出不一样的那个！`,
+      hintFound:o=>`找到啦！这个是「<b>${o}</b>」 🎉`,
+      pyTitle:'你找到的不同字是 👇',
+      pyQ:'它的拼音是哪个呢？<b>快选！</b>',
+      pyRight:'答对啦！进入下一关 →',
+      pyCombo:(n,b)=>`太厉害啦！连击 ×${n}  +${b}⭐`,
+      pyWrong:'不对哦，再选选看～',
+      comboPop:(n,b)=>`🔥 连击 ×${n}！ +${b}⭐`,
+      overTitle:'时间到啦！',
+      overSub:(l,s)=>`你闯到了第 <b>${l}</b> 关，得了 <b>${s}</b> 颗星 ⭐<br>正确答案已经用绿色标出，再来一次吧！`,
+      footer:'嘟嘟找别字 🐯 汉字取自人教版一~三年级二会字 · 找别字 → 选拼音 → 连击闯关',
+      other:'EN'
+    },
+    en: {
+      title:'DuDu: Spot the Hanzi',
+      intro:'The screen fills with one repeated Chinese character.<br>One <b>look-alike "odd one"</b> is hidden inside!<br>Tap it, then pick its <b>pinyin in time</b> to clear the level.<br>Chain correct answers for <b>combo rewards</b> 🔥',
+      start:'Start Game', again:'Play Again',
+      level:n=>`Level <b id="level">${n}</b>`,
+      hintFind:b=>`These are all 「<b>${b}</b>」 — find the different one!`,
+      hintFound:o=>`Found it! This one is 「<b>${o}</b>」 🎉`,
+      pyTitle:'The odd character you found 👇',
+      pyQ:'Which pinyin is correct? <b>Hurry!</b>',
+      pyRight:'Correct! Next level →',
+      pyCombo:(n,b)=>`Awesome! Combo ×${n}  +${b}⭐`,
+      pyWrong:'Nope, try again~',
+      comboPop:(n,b)=>`🔥 Combo ×${n}! +${b}⭐`,
+      overTitle:"Time's up!",
+      overSub:(l,s)=>`You reached Level <b>${l}</b> with <b>${s}</b> stars ⭐<br>The answer is marked in green. Try again!`,
+      footer:'DuDu: Spot the Hanzi 🐯 Characters from PEP grades 1–3 · Spot it → Pick pinyin → Combo!',
+      other:'中'
+    }
+  };
 
   const $ = id => document.getElementById(id);
   const gridEl = $('grid'), timerBar = $('timerBar');
@@ -491,7 +533,8 @@
       gridEl.appendChild(cell);
     }
     requestAnimationFrame(applyFontSize);
-    $('hint').innerHTML=`这些都是「<b>${base}</b>」，快找出不一样的那个！`;
+    gameActive=true; curBase=base;
+    $('hint').innerHTML=I18N[lang].hintFind(base);
     timeTotal=time; timeLeft=time;
     timerBar.style.width='100%';
     timerBar.style.background='linear-gradient(90deg, var(--candy-yellow), var(--candy-orange))';
@@ -504,7 +547,7 @@
     if(i===answerIndex){
       locked=true; clearInterval(timerId); cell.classList.add('correct');
       score+=Math.max(Math.ceil(timeLeft*10),10); $('score').textContent=score;
-      sfxRight(); $('hint').innerHTML=`找到啦！这个是「<b>${oddChar}</b>」 🎉`;
+      sfxRight(); $('hint').innerHTML=I18N[lang].hintFound(oddChar);
       setTimeout(showPinyinQuiz,650);
     } else {
       cell.classList.remove('wrong'); void cell.offsetWidth; cell.classList.add('wrong');
@@ -554,19 +597,19 @@
       let bonus=0;
       if(combo>=2){ bonus=combo*5; score+=bonus; showCombo(combo,bonus); }
       $('score').textContent=score;
-      $('pyFeedback').textContent = bonus>0 ? `太厉害啦！连击 ×${combo}  +${bonus}⭐` : '答对啦！进入下一关 →';
+      $('pyFeedback').innerHTML = bonus>0 ? I18N[lang].pyCombo(combo,bonus) : I18N[lang].pyRight;
       $('pyFeedback').className='modal-feedback good';
       setTimeout(()=>{ pinyinOverlay.classList.add('hidden'); level++; startLevel(); }, bonus>0?1300:1000);
     } else {
       perfect=false;
       btn.classList.remove('no'); void btn.offsetWidth; btn.classList.add('no'); btn.disabled=true;
-      sfxWrong(); $('pyFeedback').textContent='不对哦，再选选看～'; $('pyFeedback').className='modal-feedback bad';
+      sfxWrong(); $('pyFeedback').innerHTML=I18N[lang].pyWrong; $('pyFeedback').className='modal-feedback bad';
     }
   }
   // 连击奖励动画 + 上扬音效
   function showCombo(n,bonus){
     const el=$('comboPop');
-    el.textContent=`🔥 连击 ×${n}！ +${bonus}⭐`;
+    el.textContent=I18N[lang].comboPop(n,bonus);
     el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
     playTone(noteFreq("E6"),0.1,'square',0.06);
     setTimeout(()=>playTone(noteFreq("G6"),0.14,'square',0.06),110);
@@ -575,16 +618,34 @@
 
   // ====== 结束 ======
   function gameOver(){
-    locked=true;
+    locked=true; gameActive=false; overlayMode='over';
     if(timerId)clearInterval(timerId); if(pyTimer)clearInterval(pyTimer);
     const cells=gridEl.children;
     if(cells[answerIndex])cells[answerIndex].classList.add('correct');
-    $('ovEmoji').textContent='⏰💦'; $('ovTitle').textContent='时间到啦！';
-    $('ovSub').innerHTML=`你闯到了第 <b>${level}</b> 关，得了 <b>${score}</b> 颗星 ⭐<br>正确答案已经用绿色标出，再来一次吧！`;
-    $('startBtn').textContent='再玩一次'; startOverlay.classList.remove('hidden');
+    $('ovEmoji').textContent='⏰💦';
+    applyLang();                          // 按当前语言渲染结算文案
+    startOverlay.classList.remove('hidden');
   }
   function startGame(){ ensureAudio(); startMusic(); level=1; score=0; combo=0; if(pyTimer)clearInterval(pyTimer); startOverlay.classList.add('hidden'); pinyinOverlay.classList.add('hidden'); startLevel(); }
+
+  // ====== 语言切换 ======
+  function applyLang(){
+    const s=I18N[lang];
+    $('langBtn').textContent=s.other;
+    $('footer').innerHTML=s.footer;
+    $('pyTitleEl').innerHTML=s.pyTitle;
+    $('pyQEl').innerHTML=s.pyQ;
+    $('levelPill').innerHTML=s.level(level);
+    if(overlayMode==='intro'){
+      $('ovTitle').textContent=s.title; $('ovSub').innerHTML=s.intro; $('startBtn').textContent=s.start;
+    } else {
+      $('ovTitle').textContent=s.overTitle; $('ovSub').innerHTML=s.overSub(level,score); $('startBtn').textContent=s.again;
+    }
+    if(gameActive&&curBase) $('hint').innerHTML=s.hintFind(curBase);
+  }
   $('startBtn').addEventListener('click',startGame);
+  $('langBtn').addEventListener('click',()=>{ lang=(lang==='zh'?'en':'zh'); document.documentElement.lang=(lang==='zh'?'zh-CN':'en'); applyLang(); });
+  applyLang();   // 初始化界面语言
 </script>
 </body>
 </html>

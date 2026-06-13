@@ -22,3 +22,27 @@
 - 本 App 满足进入 Kids 类别的硬条件：不联网、无广告、不收集数据、无外部链接。
 - 若选择进入 Kids 类别（面向 5 岁及以下 / 6–8 / 9–11），审核会更严格，且**不得包含任何外部链接和第三方分析**——本 App 已满足。
 - 建议：首次上架可**先不进 Kids 类别**，主分类用"教育"即可，流程更简单；以后想进再切换。
+
+---
+
+## English (Age Rating questionnaire)
+
+This is a clean educational game for children, with no mature/violent/gambling content. Answer **None / No** to every content question; the resulting rating will be **4+**.
+
+| Questionnaire item | Answer |
+|---|---|
+| Cartoon or Fantasy Violence | None |
+| Realistic Violence | None |
+| Sexual Content or Nudity | None |
+| Profanity or Crude Humor | None |
+| Horror/Fear Themes | None |
+| Simulated Gambling | None |
+| Alcohol, Tobacco, or Drug Use | None |
+| Medical/Treatment Info | None |
+| Unrestricted Web Access | No (no network, no in-app browser) |
+| User-generated content / social | No |
+| Data collection & tracking | No |
+
+**Expected rating: 4+.**
+
+**Kids Category (optional):** the app qualifies (offline, no ads, no data collection, no external links). For a first release it is simpler to use the **Education** category and skip the Kids Category; you can opt in later.

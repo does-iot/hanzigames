@@ -17,3 +17,19 @@
 ## 注意
 - 若你**以后**加入了任何分析、崩溃上报、广告或云存档，必须回来更新此答卷，否则违规。
 - 当前版本无需勾选任何"数据类型"。
+
+---
+
+## English (App Privacy questionnaire)
+
+**Step 1 — Do you collect data?**
+Select: **"No, we do not collect any data from this app."**
+The store page will then show **"Data Not Collected."**
+
+**Why this is valid**
+- The app runs fully on-device: no network, no server, no backend.
+- No third-party SDKs, ads, or analytics (no Google Analytics, Facebook SDK, Firebase, etc.).
+- No access to contacts, location, photos, microphone, or camera.
+- Scores live only in memory during a session — never written to disk or uploaded.
+
+**Note:** if a future version adds any analytics, crash reporting, ads, or cloud saves, you must return and update this questionnaire. The current version requires no data-type selections.

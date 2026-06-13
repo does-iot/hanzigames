@@ -26,6 +26,7 @@ Every character is drawn from the standard PEP (人教版) Chinese textbooks for
 
 ■ Thoughtfully made for kids
 · Cartoon candy-style interface: rounded, cute, bright
+· One-tap English/Chinese toggle — great for kids learning Chinese as a second language
 · Cheerful nursery-rhyme background music (multiple tunes on loop), one-tap mute
 · Clear sound and animation feedback for every answer
 · Runs fully offline. No ads. Collects no personal data whatsoever.
