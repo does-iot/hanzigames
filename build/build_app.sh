@@ -29,6 +29,7 @@ mkdir -p "$APP/Contents/Resources"
 
 cp "$BUILD/$EXEC_NAME" "$APP/Contents/MacOS/$EXEC_NAME"
 cp "$PROJ/汉字找茬游戏.html" "$APP/Contents/Resources/game.html"
+cp "$PROJ/appstore/icon/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -38,6 +39,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleName</key>            <string>嘟嘟找别字</string>
   <key>CFBundleDisplayName</key>     <string>嘟嘟找别字</string>
   <key>CFBundleExecutable</key>      <string>$EXEC_NAME</string>
+  <key>CFBundleIconFile</key>        <string>AppIcon</string>
   <key>CFBundleIdentifier</key>      <string>com.kids.dudubiezi</string>
   <key>CFBundlePackageType</key>     <string>APPL</string>
   <key>CFBundleShortVersionString</key> <string>1.0</string>

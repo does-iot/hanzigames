@@ -19,12 +19,13 @@ let radius = W * 0.2237
 cg.addPath(CGPath(roundedRect: CGRect(x: 0, y: 0, width: W, height: W),
                   cornerWidth: radius, cornerHeight: radius, transform: nil))
 cg.clip()
-let cols = [NSColor(srgbRed: 1.0, green: 0.68, blue: 0.32, alpha: 1).cgColor,
-            NSColor(srgbRed: 1.0, green: 0.42, blue: 0.42, alpha: 1).cgColor] as CFArray
+let cols = [NSColor(srgbRed: 0.36, green: 0.85, blue: 0.54, alpha: 1).cgColor,  // 亮草绿
+            NSColor(srgbRed: 0.15, green: 0.64, blue: 0.36, alpha: 1).cgColor] as CFArray // 深草绿
 let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: cols, locations: [0, 1])!
 cg.drawLinearGradient(grad, start: CGPoint(x: 0, y: W), end: CGPoint(x: W, y: 0), options: [])
 
-let brown = NSColor(srgbRed: 0.36, green: 0.27, blue: 0.21, alpha: 1)
+let darkGreen = NSColor(srgbRed: 0.122, green: 0.353, blue: 0.196, alpha: 1)  // 深森林绿（字描边）
+let glass = NSColor(srgbRed: 1.0, green: 0.824, blue: 0.247, alpha: 1)        // 向日葵黄（放大镜）
 
 // 汉字"字"
 let para = NSMutableParagraphStyle(); para.alignment = .center
@@ -35,7 +36,7 @@ shadow.shadowOffset = NSSize(width: 0, height: -10)
 shadow.shadowBlurRadius = 18
 let attrs: [NSAttributedString.Key: Any] = [
     .font: font, .foregroundColor: NSColor.white,
-    .strokeColor: brown, .strokeWidth: -6.0,
+    .strokeColor: darkGreen, .strokeWidth: -6.0,
     .paragraphStyle: para, .shadow: shadow
 ]
 let str = NSAttributedString(string: "字", attributes: attrs)
@@ -50,7 +51,7 @@ cg.fillEllipse(in: CGRect(x: cx - rr, y: cy - rr, width: rr * 2, height: rr * 2)
 let a = -CGFloat.pi / 4
 let p1 = CGPoint(x: cx + cos(a) * rr, y: cy + sin(a) * rr)
 let p2 = CGPoint(x: cx + cos(a) * (rr + W * 0.135), y: cy + sin(a) * (rr + W * 0.135))
-cg.setStrokeColor(brown.cgColor); cg.setLineCap(.round); cg.setLineWidth(W * 0.062)
+cg.setStrokeColor(glass.cgColor); cg.setLineCap(.round); cg.setLineWidth(W * 0.062)
 cg.move(to: p1); cg.addLine(to: p2); cg.strokePath()
 // 镜框
 cg.setLineWidth(W * 0.05)
