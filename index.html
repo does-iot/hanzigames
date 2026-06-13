@@ -353,7 +353,7 @@
   // 取自人教版一~三年级语文二会字，按视觉相似度配组
   // 按年级分组（每组形近字对）。选"全部"时合并所有年级。
   const GRADES = {
-    g1: { zh:'一年级', en:'Grade 1', pairs:[
+    g1: { zh:'一年级', en:'Grade 1', icon:'🌱', pairs:[
       ['日', ['目', '白', '田', '旦']], ['目', ['日', '自', '月']],
       ['人', ['入', '八', '大']], ['入', ['人', '八']],
       ['大', ['太', '天', '人']], ['太', ['大', '天']], ['天', ['大', '夫', '太']],
@@ -376,7 +376,7 @@
       ['免', ['兔']], ['兔', ['免']], ['买', ['卖']], ['卖', ['买']],
       ['看', ['着']], ['鱼', ['鸟']],
     ]},
-    g2: { zh:'二年级', en:'Grade 2', pairs:[
+    g2: { zh:'二年级', en:'Grade 2', icon:'🌿', pairs:[
       ['请', ['清', '情', '晴', '睛']], ['清', ['请', '情', '晴', '青']],
       ['晴', ['睛', '清', '情']], ['睛', ['晴', '请', '情']], ['青', ['清', '请']],
       ['跑', ['抱', '泡', '炮', '饱']], ['抱', ['跑', '泡', '饱', '包']],
@@ -392,7 +392,7 @@
       ['优', ['忧']], ['历', ['厉']], ['厉', ['历']],
       ['推', ['堆']], ['堆', ['推']], ['渴', ['喝']], ['喝', ['渴']],
     ]},
-    g3: { zh:'三年级', en:'Grade 3', pairs:[
+    g3: { zh:'三年级', en:'Grade 3', icon:'🍀', pairs:[
       ['桥', ['轿', '骄', '娇']], ['骄', ['娇', '桥', '轿']],
       ['棋', ['旗', '期']], ['旗', ['棋', '期']],
       ['烧', ['浇', '绕', '晓']], ['浇', ['烧', '绕', '晓']],
@@ -404,7 +404,7 @@
       ['阴', ['阳']], ['蜂', ['峰', '锋']], ['峰', ['蜂', '锋']],
       ['棉', ['绵']], ['绵', ['棉']], ['详', ['祥']], ['祥', ['详']],
     ]},
-    g4: { zh:'四年级', en:'Grade 4', pairs:[
+    g4: { zh:'四年级', en:'Grade 4', icon:'🌳', pairs:[
       ['操', ['澡', '噪', '燥']], ['澡', ['操', '噪', '燥']], ['噪', ['澡', '操', '燥']],
       ['镜', ['境']], ['境', ['镜']],
       ['即', ['既']], ['既', ['即']],
@@ -416,7 +416,7 @@
       ['锐', ['悦', '阅', '说']], ['悦', ['锐', '阅', '说']], ['阅', ['悦', '锐', '说']],
       ['茅', ['矛']], ['矛', ['茅']],
     ]},
-    g5: { zh:'五年级', en:'Grade 5', pairs:[
+    g5: { zh:'五年级', en:'Grade 5', icon:'🔥', pairs:[
       ['偏', ['遍', '编', '骗', '篇']], ['遍', ['偏', '编', '篇']], ['编', ['偏', '遍', '骗']],
       ['谣', ['摇', '遥']], ['摇', ['谣', '遥']], ['遥', ['谣', '摇']],
       ['嫂', ['搜', '艘']], ['搜', ['嫂', '艘']],
@@ -432,6 +432,16 @@
     if (selectedGrade === 'all') return Object.values(GRADES).flatMap(g => g.pairs);
     return GRADES[selectedGrade].pairs;
   }
+  // 各年级难度：timeMul 限时倍率、countBase 起始字数、scoreMul 计分倍率（越高年级越紧张、得分越高）
+  const GRADE_DIFF = {
+    g1:{ timeMul:1.30, countBase:8,  scoreMul:1.0 },
+    g2:{ timeMul:1.15, countBase:10, scoreMul:1.3 },
+    g3:{ timeMul:1.00, countBase:12, scoreMul:1.6 },
+    g4:{ timeMul:0.90, countBase:14, scoreMul:2.0 },
+    g5:{ timeMul:0.80, countBase:16, scoreMul:2.5 },
+    all:{ timeMul:1.00, countBase:12, scoreMul:1.6 },
+  };
+  function gradeDiff(){ return GRADE_DIFF[selectedGrade] || GRADE_DIFF.all; }
 
   // ====== 拼音表（带声调）======
   const PINYIN = {
@@ -584,7 +594,7 @@
 
   // ====== 工具 ======
   function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
-  function levelConfig(lv){ const count=Math.min(12+(lv-1)*3,64); const time=Math.max(20-(lv-1)*1.2,8); return {count,time}; }
+  function levelConfig(lv){ const d=gradeDiff(); const count=Math.min(d.countBase+(lv-1)*3,64); const time=Math.max((20-(lv-1)*1.2)*d.timeMul,6); return {count,time}; }
 
   // 字号自适应：基于网格实际宽度与列数计算
   function applyFontSize(){
@@ -632,7 +642,7 @@
     if(locked)return;
     if(i===answerIndex){
       locked=true; clearInterval(timerId); cell.classList.add('correct');
-      score+=Math.max(Math.ceil(timeLeft*10),10); $('score').textContent=score;
+      score+=Math.max(Math.ceil(timeLeft*10*gradeDiff().scoreMul),10); $('score').textContent=score;
       sfxRight(); $('hint').innerHTML=I18N[lang].hintFound(oddChar);
       setTimeout(showPinyinQuiz,650);
     } else {
@@ -676,12 +686,13 @@
   function onPinyinPick(btn,picked,correct){
     if(picked===correct){
       clearInterval(pyTimer);
-      btn.classList.add('ok'); sfxRight(); score+=20;
+      const sm=gradeDiff().scoreMul;
+      btn.classList.add('ok'); sfxRight(); score+=Math.round(20*sm);
       [...$('pinyinOptions').children].forEach(b=>b.disabled=true);
       // 连击：本关全程无错才累加，否则清零
       if(perfect) combo++; else combo=0;
       let bonus=0;
-      if(combo>=2){ bonus=combo*5; score+=bonus; showCombo(combo,bonus); }
+      if(combo>=2){ bonus=Math.round(combo*5*sm); score+=bonus; showCombo(combo,bonus); }
       $('score').textContent=score;
       $('pyFeedback').innerHTML = bonus>0 ? I18N[lang].pyCombo(combo,bonus) : I18N[lang].pyRight;
       $('pyFeedback').className='modal-feedback good';
@@ -718,11 +729,11 @@
   function renderGradePick(){
     const s=I18N[lang];
     const box=$('gradePick'); box.innerHTML='';
-    const opts=[['all', s.gradeAll], ...Object.keys(GRADES).map(k=>[k, GRADES[k][lang]])];
-    opts.forEach(([key,label])=>{
+    const opts=[['all','🎲',s.gradeAll], ...Object.keys(GRADES).map(k=>[k, GRADES[k].icon, GRADES[k][lang]])];
+    opts.forEach(([key,icon,label])=>{
       const b=document.createElement('button');
       b.className='grade-btn'+(key===selectedGrade?' sel':'');
-      b.textContent=label;
+      b.textContent=icon+' '+label;
       b.addEventListener('click',()=>{ selectedGrade=key; renderGradePick(); });
       box.appendChild(b);
     });
